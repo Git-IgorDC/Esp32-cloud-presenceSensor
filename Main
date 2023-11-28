@@ -1,0 +1,39 @@
+ #include <WiFi.h>
+#include <IOXhop_FirebaseESP32.h> #include <ArduinoJson.h>
+#include <TimeLib.h>
+#include <NTPClient.h>
+#define SENSOR_A_PIN 2 #define SENSOR_B_PIN 5 #define BUZZER_PIN 14
+#define FIREBASE_HOST "https://console.firebase.google.com/u/0/project/esp32prj-8da47/database/esp32prj-8da47-d efault-rtdb/data/~2F?hl=pt"
+#define FIREBASE_AUTH "XGM9JncPQeB6uLFXeN3Kxne6YdTjRC51vze1cdEU"
+#define ssid "K61_5387" #define password "Livia2003" WiFiServer server(80); WiFiUDP ntpUDP;
+NTPClient ntp(ntpUDP);
+void setup() { Serial.begin(9600);
+WiFi.begin(ssid, password);
+while (WiFi.status() != WL_CONNECTED) {
+delay(5000);
+Serial.print("."); }
+Serial.println(""); Serial.println("WiFi connected."); Serial.println("IP address: "); Serial.println(WiFi.localIP()); Serial.println();
+server.begin();
+ntp.begin(); ntp.setTimeOffset(-10800); ntp.update();
+Serial.println("-------------------------- FIREBASE CONNECTION -------------------------"); Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+if (Firebase.failed()) {
+Serial.print("Falha na conexão com o Firebase. Código de erro: "); Serial.println(Firebase.error());
+} else {
+
+ Serial.println("Conexão com o Firebase bem-sucedida...");
+Serial.println(); }
+Serial.println("------------------- SENSOR AND BUZZER CONFIGURATION ----------------------");
+pinMode(SENSOR_A_PIN, INPUT); pinMode(SENSOR_B_PIN, INPUT); pinMode(BUZZER_PIN, OUTPUT);
+}
+void loop() {
+// Lógica dos sensores HC-SR501 e Buzzer int sensorA = digitalRead(SENSOR_A_PIN); int sensorB = digitalRead(SENSOR_B_PIN);
+if (sensorA == HIGH) {
+// Sensor A ativado
+delay(5000); // Espera 5 segundos
+if (digitalRead(SENSOR_B_PIN) == HIGH) {
+// Sensor B ativado dentro de 5 segundos após Sensor A
+String data = "{\"entrada\": \"" + ntp.getFormattedDate() + " " + ntp.getFormattedTime() + "\"}";
+Firebase.pushString("/registros", data);
+digitalWrite(BUZZER_PIN, HIGH); delay(1000); // Ative o buzzer por 1 segundo digitalWrite(BUZZER_PIN, LOW);
+} }
+delay(1000); }
